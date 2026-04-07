@@ -1,5 +1,4 @@
-# synthetic-load v1.0.1 (2026-04-07)
-
+# synthetic-load v1.1.0 (2026-04-07)
 Простая утилита для генерации постоянной синтетической нагрузки CPU и RAM.  
 Нужна, чтобы проверить, как Zabbix/Grafana и другие системы мониторинга реагируют на стабильную нагрузку.
 
@@ -8,23 +7,25 @@
 cd ~
 git clone https://github.com/SkyrocketStan/synthetic-load.git
 cd synthetic-load
+chmod +x install.sh
 ./install.sh
 ```
-`install.sh` сам сделает `chmod +x` и создаст сервис.
 
-## Ручная установка (если не хочешь пользоваться install.sh)
+install.sh автоматически настроит права доступа, создаст сервис и включит автономный режим работы.
 
+## Ручная установка (без install.sh)
 ```bash
 cd ~
 git clone https://github.com/SkyrocketStan/synthetic-load.git
 cd synthetic-load
 
-# !ВАЖНО! Делаем скрипт исполняемым
+# 1. Делаем скрипт исполняемым
 chmod +x synthetic_load.py
 
-# создаём user-сервис
+# 2. Создаём директорию для пользовательских сервисов
 mkdir -p ~/.config/systemd/user
 
+# 3. Создаём файл сервиса
 cat > ~/.config/systemd/user/synthetic-load.service <<EOF
 [Unit]
 Description=Synthetic CPU/RAM load for monitoring testing
@@ -39,25 +40,28 @@ RestartSec=30
 WantedBy=default.target
 EOF
 
+# 4. Активируем сервис
 systemctl --user daemon-reload
 systemctl --user enable --now synthetic-load.service
 
-# !ВАЖНО! Включаем автономный режим, чтобы процесс не останавливался после закрытия консоли
-bashloginctl enable-linger $USER
+# 5. ВАЖНО: Включаем автономный режим (Lingering)# Без этого процесс завершится сразу после вашего выхода из консоли (SSH)
+loginctl enable-linger $USER
 ```
 
 ## Настройка нагрузки
-Правим две строчки в начале файла `synthetic_load.py`:
+Измените значения в начале файла synthetic_load.py:
 ```python
-TARGET_CPU_PERCENT = 12   # сколько % от всех ядер
-TARGET_RAM_PERCENT = 8    # сколько % от всей RAM
+TARGET_CPU_PERCENT = 12   # нагрузка в % от всех ядер
+TARGET_RAM_PERCENT = 8    # нагрузка в % от всей доступной RAM
 ```
-После правки:
+
+После сохранения изменений перезапустите сервис:
 ```bash
 systemctl --user restart synthetic-load.service
 ```
 
-## Проверка
+## Проверка работы
+Убедитесь, что сервис активен и создает нагрузку:
 ```bash
 systemctl --user status synthetic-load.service
 top | grep python
@@ -65,14 +69,19 @@ free -h
 ```
 
 ## Удаление
+Для полной очистки системы (включая отключение фонового режима):
+
+```bash
+~/synthetic-load/uninstall.sh
+```
+
+Или вручную:
+
 ```bash
 systemctl --user stop synthetic-load.service
 systemctl --user disable synthetic-load.service
-# !ВАЖНО! Отключайте linger только если он не используется для других ваших процессов!!
-loginctl disable-linger $USER
-rm ~/.config/systemd/user/synthetic-load.service
+rm -f ~/.config/systemd/user/synthetic-load.service
 systemctl --user daemon-reload
-
-# либо просто одной командой из каталога:
-~/synthetic-load/uninstall.sh
+# Отключайте linger, только если он не нужен для других ваших сервисов!
+loginctl disable-linger $USER
 ```
