@@ -1,4 +1,4 @@
-# synthetic-load v1.0.0 (27.11.2025)
+# synthetic-load v1.0.1 (2026-04-07)
 
 Простая утилита для генерации постоянной синтетической нагрузки CPU и RAM.  
 Нужна, чтобы проверить, как Zabbix/Grafana и другие системы мониторинга реагируют на стабильную нагрузку.
@@ -19,7 +19,7 @@ cd ~
 git clone https://github.com/SkyrocketStan/synthetic-load.git
 cd synthetic-load
 
-# ← ВАЖНО! Делаем скрипт исполняемым
+# !ВАЖНО! Делаем скрипт исполняемым
 chmod +x synthetic_load.py
 
 # создаём user-сервис
@@ -41,6 +41,9 @@ EOF
 
 systemctl --user daemon-reload
 systemctl --user enable --now synthetic-load.service
+
+# !ВАЖНО! Включаем автономный режим, чтобы процесс не останавливался после закрытия консоли
+bashloginctl enable-linger $USER
 ```
 
 ## Настройка нагрузки
@@ -65,6 +68,8 @@ free -h
 ```bash
 systemctl --user stop synthetic-load.service
 systemctl --user disable synthetic-load.service
+# !ВАЖНО! Отключайте linger только если он не используется для других ваших процессов!!
+loginctl disable-linger $USER
 rm ~/.config/systemd/user/synthetic-load.service
 systemctl --user daemon-reload
 
